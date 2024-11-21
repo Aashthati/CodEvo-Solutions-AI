@@ -1,0 +1,80 @@
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers, models
+from tensorflow.keras.callbacks import ModelCheckpoint
+import os
+import time
+
+# Load the Shakespeare text corpus (replace with your dataset)
+path_to_file = 'shakespeare.txt'  # Replace with the correct file path
+with open(path_to_file, 'r') as file:
+    text = file.read()
+
+# Create character-to-index and index-to-character mappings
+vocab = sorted(set(text))
+char_to_idx = {char: idx for idx, char in enumerate(vocab)}
+idx_to_char = {idx: char for idx, char in enumerate(vocab)}
+
+# Convert the text into integers
+text_as_int = np.array([char_to_idx[char] for char in text])
+
+# Define the sequence length for training samples
+seq_length = 100
+batch_size = 64
+
+# Prepare training samples and targets
+def create_sequences(text_as_int, seq_length):
+    inputs = []
+    targets = []
+    for i in range(0, len(text_as_int) - seq_length, seq_length):
+        inputs.append(text_as_int[i:i + seq_length])
+        targets.append(text_as_int[i + 1:i + seq_length + 1])
+    return np.array(inputs), np.array(targets)
+
+# Create the training data
+inputs, targets = create_sequences(text_as_int, seq_length)
+inputs = np.expand_dims(inputs, axis=-1)
+
+# Define the RNN model using LSTM layers
+model = models.Sequential([
+    layers.LSTM(256, input_shape=(seq_length, 1), return_sequences=True),
+    layers.LSTM(256),
+    layers.Dense(len(vocab), activation='softmax')
+])
+
+# Compile the model
+model.compile(loss='sparse_categorical_crossentropy', optimizer='adam')
+
+# Define the checkpoint to save the model weights
+checkpoint_callback = ModelCheckpoint(
+    'text_generation_model.h5', save_weights_only=True, save_best_only=True
+)
+
+# Train the model
+history = model.fit(inputs, targets, epochs=20, batch_size=batch_size, callbacks=[checkpoint_callback])
+
+# Save the final model
+model.save('final_text_generation_model.h5')
+
+# Function to generate text from the trained model
+def generate_text(model, start_string, generation_length=500):
+    input_eval = [char_to_idx[char] for char in start_string]
+    input_eval = np.expand_dims(input_eval, axis=-1)  # Add batch dimension
+    
+    generated_text = start_string
+    for _ in range(generation_length):
+        predictions = model.predict(input_eval)
+        predicted_id = np.argmax(predictions[0])
+
+        predicted_char = idx_to_char[predicted_id]
+        generated_text += predicted_char
+
+        input_eval = np.append(input_eval[0][1:], [[predicted_id]], axis=0)
+        input_eval = np.expand_dims(input_eval, axis=0)
+
+    return generated_text
+
+# Generate new text starting with a seed string
+seed_text = "Shall I compare thee to a summer's day?"
+generated_text = generate_text(model, seed_text, generation_length=500)
+print(generated_text)
