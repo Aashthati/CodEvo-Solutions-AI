@@ -1,0 +1,60 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+# Sample dataset (replace with actual data or load from a file)
+# For example: You can download a dataset from: https://archive.ics.uci.edu/ml/datasets/SMS+Spam+Collection
+
+# Creating a sample dataframe (Replace with loading actual data)
+data = {'message': ['Free money', 'Hi, how are you?', 'Win a lottery', 'Important meeting tomorrow', 'Free ticket'],
+        'label': ['spam', 'ham', 'spam', 'ham', 'spam']}
+df = pd.DataFrame(data)
+
+# Check the data
+print(df.head())
+
+# Preprocessing: Encode the labels (ham = 0, spam = 1)
+df['label'] = df['label'].map({'ham': 0, 'spam': 1})
+
+# Split the data into train and test sets
+X = df['message']
+y = df['label']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Convert text data into numerical data (Bag of Words)
+vectorizer = CountVectorizer(stop_words='english')  # Removing common stopwords
+X_train_vect = vectorizer.fit_transform(X_train)
+X_test_vect = vectorizer.transform(X_test)
+
+# Check the shape of the data
+print(f"Training data shape: {X_train_vect.shape}")
+print(f"Test data shape: {X_test_vect.shape}")
+# Train the Naive Bayes model
+nb_model = MultinomialNB()
+nb_model.fit(X_train_vect, y_train)
+
+# Predict on the test set
+y_pred = nb_model.predict(X_test_vect)
+# Calculate accuracy, precision, recall, and F1-score
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred)
+recall = recall_score(y_test, y_pred)
+f1 = f1_score(y_test, y_pred)
+
+# Print the evaluation metrics
+print(f"Accuracy: {accuracy:.4f}")
+print(f"Precision: {precision:.4f}")
+print(f"Recall: {recall:.4f}")
+print(f"F1 Score: {f1:.4f}")
+
+import joblib
+
+# Save the model and vectorizer
+joblib.dump(nb_model, 'naive_bayes_spam_model.pkl')
+joblib.dump(vectorizer, 'vectorizer.pkl')
+
+# Load the model and vectorizer later
+loaded_model = joblib.load('naive_bayes_spam_model.pkl')
+loaded_vectorizer = joblib.load('vectorizer.pkl')
