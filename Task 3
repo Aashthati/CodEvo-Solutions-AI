@@ -1,0 +1,66 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+from tensorflow.keras import layers, models
+from tensorflow.keras.datasets import cifar10
+from tensorflow.keras.utils import to_categorical
+from sklearn.metrics import confusion_matrix, accuracy_score
+import seaborn as sns
+
+# Load CIFAR-10 dataset
+(x_train, y_train), (x_test, y_test) = cifar10.load_data()
+
+# Normalize the images to [0, 1]
+x_train = x_train.astype('float32') / 255.0
+x_test = x_test.astype('float32') / 255.0
+
+# One-hot encode the labels
+y_train = to_categorical(y_train, 10)
+y_test = to_categorical(y_test, 10)
+
+# Build the CNN model
+model = models.Sequential()
+model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 3)))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+model.add(layers.Flatten())
+model.add(layers.Dense(64, activation='relu'))
+model.add(layers.Dense(10, activation='softmax'))
+
+# Compile the model
+model.compile(optimizer='adam',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
+
+# Train the model
+history = model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test))
+
+# Evaluate the model on test data
+test_loss, test_acc = model.evaluate(x_test, y_test, verbose=2)
+print(f"Test Accuracy: {test_acc:.4f}")
+print(f"Test Loss: {test_loss:.4f}")
+
+# Get predictions on the test set
+y_pred = model.predict(x_test)
+y_pred_classes = np.argmax(y_pred, axis=1)
+y_true_classes = np.argmax(y_test, axis=1)
+
+# Calculate confusion matrix
+cm = confusion_matrix(y_true_classes, y_pred_classes)
+
+# Plot the confusion matrix
+plt.figure(figsize=(10, 8))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=np.arange(10), yticklabels=np.arange(10))
+plt.xlabel('Predicted')
+plt.ylabel('True')
+plt.title('Confusion Matrix')
+plt.show()
+
+# Calculate additional metrics
+accuracy = accuracy_score(y_true_classes, y_pred_classes)
+print(f"Accuracy: {accuracy:.4f}")
+
+# Save the model weights
+model.save_weights('cnn_cifar10_weights.h5')
