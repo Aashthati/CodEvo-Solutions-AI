@@ -1,0 +1,50 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.datasets import mnist
+
+# Load MNIST dataset
+(X_train, y_train), (X_test, y_test) = mnist.load_data()
+
+# Flatten the images to 1D arrays of size 28x28 = 784
+X_train = X_train.reshape(-1, 28*28) / 255.0
+X_test = X_test.reshape(-1, 28*28) / 255.0
+
+# Print the shape of the data to confirm
+print(f"Training data shape: {X_train.shape}")
+print(f"Testing data shape: {X_test.shape}")
+
+# Split the training data into training and validation sets
+X_train_split, X_val_split, y_train_split, y_val_split = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+# Initialize the Logistic Regression model
+log_reg = LogisticRegression(max_iter=100, solver='lbfgs', multi_class='multinomial', verbose=1)
+
+# Train the model
+log_reg.fit(X_train_split, y_train_split)
+
+# Evaluate on the validation data
+y_val_pred = log_reg.predict(X_val_split)
+val_accuracy = accuracy_score(y_val_split, y_val_pred)
+print(f"Validation Accuracy: {val_accuracy:.4f}")
+
+# Make predictions on the test set
+y_test_pred = log_reg.predict(X_test)
+
+# Calculate accuracy
+test_accuracy = accuracy_score(y_test, y_test_pred)
+print(f"Test Accuracy: {test_accuracy:.4f}")
+
+# Visualize some predictions
+num_images = 5
+fig, axes = plt.subplots(1, num_images, figsize=(10, 5))
+
+for i in range(num_images):
+    ax = axes[i]
+    ax.imshow(X_test[i].reshape(28, 28), cmap='gray')
+    ax.set_title(f"Pred: {y_test_pred[i]}, True: {y_test[i]}")
+    ax.axis('off')
+
+plt.show()
